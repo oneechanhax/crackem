@@ -1,2 +1,2 @@
-# neko-break
+# nekohack
 Break things in cool ways!
