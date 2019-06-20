@@ -50,7 +50,7 @@ public:
     void Clear();
     LMap GetLMap();
     template<typename T>
-    T GetSym(SymStr s) { reinterpret_cast<T>(this->GetSymInternal(s)); }
+    T GetSym(SymStr s) { return reinterpret_cast<T>(this->GetSymInternal(s)); }
 private:
     void* GetSymInternal(SymStr);
     bool init_flag = false;

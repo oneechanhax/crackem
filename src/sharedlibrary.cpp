@@ -18,7 +18,7 @@
  */
 
 #include <cstring>
-
+#include <iostream>
 #include "memory.hpp"
 
 #include "sharedlibrary.hpp"
@@ -47,6 +47,7 @@ void SharedLibrary::Init(std::string_view _name){
         Passthrough pass;
         pass.name = '/' + std::string(_name) + '.';
         if (!dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* _pass) {
+            std::cout << "Lib: " << info->dlpi_name << std::endl;
             auto* pass = reinterpret_cast<Passthrough*>(_pass);
             if (!strstr(info->dlpi_name, pass->name.c_str()))
                 return 0;
