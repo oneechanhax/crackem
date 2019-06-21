@@ -43,7 +43,7 @@ void SharedLibrary::Init(std::string_view _name){
     if (!init_flag) {
         this->name = _name;
         if (this->name.empty())
-            throw std::logic_error("SharedLibrary: no name avaiable.");
+            throw std::runtime_error("SharedLibrary: no name avaiable.");
         Passthrough pass;
         pass.name = '/' + std::string(_name) + '.';
         if (!dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* _pass) {
@@ -58,21 +58,23 @@ void SharedLibrary::Init(std::string_view _name){
         }, reinterpret_cast<void*>(&pass)))
             throw std::runtime_error("SharedLibrary: Unable to find loaded library");
 
-        this->lmap = static_cast<LMap>(
-                dlopen(path.c_str(), RTLD_NOLOAD | RTLD_NOW | RTLD_LOCAL));
-        if (const char* error = dlerror())
-            throw std::runtime_error("SharedLibrary recieved dlerror: + error");
-
         this->path = pass.path;
         this->_begin = pass.begin;
         this->_end = mem::Offset<void*>(pass.begin, pass.size);
         this->_size = pass.size;
+
+        this->lmap = static_cast<LMap>(dlopen(this->path.c_str(), RTLD_NOLOAD));
+        if (const char* error = dlerror())
+            throw std::runtime_error("SharedLibrary recieved dlerror: " + std::string(error));
+
         this->init_flag = true;
     }
 }
 void SharedLibrary::ForceInit(std::string_view _name) {
     while(!this->init_flag) {
-        this->Init();
+        try {
+            this->Init();
+        } catch(...) {}
     }
 }
 std::string_view SharedLibrary::GetName() {
@@ -100,7 +102,10 @@ void SharedLibrary::Clear(){
 }
 void* SharedLibrary::GetSymInternal(SymStr name) {
     #if defined(__linux__)
-        return dlsym(this->GetLMap(), name);
+        void* symbol = dlsym(this->GetLMap(), name);
+        if (const char* error = dlerror())
+            throw std::runtime_error("SharedLibrary recieved dlerror: " + std::string(error));
+        return symbol;
     #elif defined(_WIN32)
         return GetProcAddress(this->GetLMap(), name);
     #endif
