@@ -1,0 +1,27 @@
+[
+{
+  "directory": "/home/julianacat/github/crackem/build/src",
+  "command": "/usr/bin/clang++  -I/home/julianacat/github/crackem/src -I/home/julianacat/github/crackem/src/.. -std=gnu++17 -o CMakeFiles/crackem_static.dir/encrypt.cpp.o -c /home/julianacat/github/crackem/src/encrypt.cpp",
+  "file": "/home/julianacat/github/crackem/src/encrypt.cpp"
+},
+{
+  "directory": "/home/julianacat/github/crackem/build/src",
+  "command": "/usr/bin/clang++  -I/home/julianacat/github/crackem/src -I/home/julianacat/github/crackem/src/.. -std=gnu++17 -o CMakeFiles/crackem_static.dir/memory.cpp.o -c /home/julianacat/github/crackem/src/memory.cpp",
+  "file": "/home/julianacat/github/crackem/src/memory.cpp"
+},
+{
+  "directory": "/home/julianacat/github/crackem/build/src",
+  "command": "/usr/bin/clang++  -I/home/julianacat/github/crackem/src -I/home/julianacat/github/crackem/src/.. -std=gnu++17 -o CMakeFiles/crackem_static.dir/sharedlibrary.cpp.o -c /home/julianacat/github/crackem/src/sharedlibrary.cpp",
+  "file": "/home/julianacat/github/crackem/src/sharedlibrary.cpp"
+},
+{
+  "directory": "/home/julianacat/github/crackem/build/src",
+  "command": "/usr/bin/clang++  -I/home/julianacat/github/crackem/src -I/home/julianacat/github/crackem/src/.. -std=gnu++17 -o CMakeFiles/crackem_static.dir/signature.cpp.o -c /home/julianacat/github/crackem/src/signature.cpp",
+  "file": "/home/julianacat/github/crackem/src/signature.cpp"
+},
+{
+  "directory": "/home/julianacat/github/crackem/build/src",
+  "command": "/usr/bin/clang++  -I/home/julianacat/github/crackem/src -I/home/julianacat/github/crackem/src/.. -std=gnu++17 -o CMakeFiles/crackem_static.dir/vfthook.cpp.o -c /home/julianacat/github/crackem/src/vfthook.cpp",
+  "file": "/home/julianacat/github/crackem/src/vfthook.cpp"
+}
+]

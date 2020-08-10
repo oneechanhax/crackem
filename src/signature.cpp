@@ -24,58 +24,41 @@
 
 #include "signature.hpp"
 
-class Pattern {
-public:
-    Pattern(std::string_view input) {
-        while (!input.empty()) {
-            // Discard whitespace
-            std::size_t non_white_start = input.find_first_not_of(' ');
-            if (non_white_start == std::string_view::npos) break;
-            input.remove_prefix(non_white_start);
+namespace crackem::sig {
 
-            // act on delim
-            // Wildcard
-            if (input.front() == '?') {
-                this->wilds.push_back(true);
-                std::size_t next = input.find_first_not_of('?');
-                if (next == std::string_view::npos)
-                    break;
-                input.remove_prefix(next);
-            } else {
-                this->wilds.push_back(false);
-                if (input.size() < 2)
-                    break;
+// Original function by learn_more -- https://github.com/learn-more/findpattern-bench
+static bool InRange(uint8_t x, uint8_t a, uint8_t b) { return x >= a && x <= b; }
+static uint8_t GetBits(uint8_t x) { return InRange((x & (~0x20)), 'A', 'F') ? ((x & (~0x20)) - 'A' + 0xA): (InRange(x, '0', '9') ? x - '0': 0); }
+static uint8_t GetByte(const char* x) { return GetBits(x[0]) << 4 | GetBits(x[1]); }
 
-                std::string hex = {input[0], input[1]};
-                uint8_t nibble = std::stoul(hex, nullptr, 16);
-                this->pat.push_back(*reinterpret_cast<std::byte*>(nibble));
-                input.remove_prefix(2);
-            }
-        }
-    }
-    inline std::byte Get(std::size_t i) {
-        assert(!this->IsWild(i));
-        return pat[i];
-    }
-    inline bool IsWild(std::size_t i) {
-        auto find = std::find(wilds.begin(), wilds.end(), i);
-        return find != wilds.end();
-    }
-    inline std::size_t size(){
-        return this->pat.size();
-    }
-private:
-std::vector<std::byte> pat;
-std::vector<bool> wilds;
-};
+uintptr_t FindPattern(uintptr_t start_address, uintptr_t end_address, const char* target_pattern) {
+	const char* pattern = target_pattern;
 
-void* SearchN(void* _begin, void* _end, std::string_view _pat){
-    return nullptr;
-    /*Pattern pat(_pat);
-    std::byte* begin = reinterpret_cast<std::byte*>(_begin);
-    std::byte* end = reinterpret_cast<std::byte*>(_end);
-    auto find = std::find_if(begin, end, [&](std::byte* s) {
-        // Pattern equality
-        for (int )
-    });*/
+	uintptr_t first_match = 0;
+
+	for (uintptr_t position = start_address; position < end_address; position++) {
+		if (!*pattern)
+			return first_match;
+
+		const uint8_t pattern_current = *reinterpret_cast<const uint8_t*>(pattern);
+		const uint8_t memory_current = *reinterpret_cast<const uint8_t*>(position);
+
+		if (pattern_current == '\?' || memory_current == GetByte(pattern)) {
+			if (!first_match)
+				first_match = position;
+
+			if (!pattern[2])
+				return first_match;
+
+			pattern += pattern_current != '\?' ? 3 : 2;
+		}
+		else {
+			pattern = target_pattern;
+			first_match = 0;
+		}
+	}
+
+	return NULL;
+}
+
 }

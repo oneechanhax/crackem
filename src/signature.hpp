@@ -21,8 +21,8 @@
 
 #include <string_view>
 
-namespace neko::hack::sig {
+namespace crackem::sig {
 
-void* SearchN(void* where, std::size_t len, std::string_view pat);
+uintptr_t FindPattern(uintptr_t start_address, uintptr_t end_address, const char* target_pattern);
 
 }

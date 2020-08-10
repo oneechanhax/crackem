@@ -21,45 +21,53 @@
 
 #if defined(__linux__)
 #include <link.h>  // link maps
-using LMap = link_map*;
+using Handle = link_map*;
 using SymStr = const char*;
 #elif defined(_WIN32)
 #include <windows.h>  // loadlibrary
-using LMap = HMODULE;
+using Handle = HMODULE;
 using SymStr = LPCSTR;
 #endif
 
 #include <string_view>
 #include <filesystem>
-namespace fs = std::filesystem;
 
-namespace neko::hack {
+namespace crackem {
+namespace fs = std::filesystem;
 
 class SharedLibrary {
 public:
     SharedLibrary();
     SharedLibrary(std::string_view _name);
-    void Init() { this->Init(this->name); }
-    void ForceInit() { this->ForceInit(this->name); }
-    void Init(std::string_view _name);
-    void ForceInit(std::string_view _name);
-    std::string_view GetName();
-    void* begin();
-    void* end();
-    std::size_t size();
-    void Clear();
-    LMap GetLMap();
+    SharedLibrary(const SharedLibrary&);
+    SharedLibrary(SharedLibrary&&);
+    void Load();
+    void Load(std::string_view _name);
+    
+    SharedLibrary& operator=(SharedLibrary&& v);
+    SharedLibrary& operator=(const SharedLibrary& v);
+
+    bool IsLoaded() const;
+    std::string_view GetName() const;
+    const fs::path& GetPath() const;
+    void* begin() const;
+    void* end() const;
+    std::size_t size() const;
+    Handle GetHandle() const;
+
+    void Clear() const;
     template<typename T>
     T GetSym(SymStr s) { return reinterpret_cast<T>(this->GetSymInternal(s)); }
 private:
-    void* GetSymInternal(SymStr);
-    bool init_flag = false;
+    void* GetSymInternal(SymStr) const;
+
+    bool loaded;
     std::string_view name;
     fs::path path;
     void* _begin;
     void* _end;
     std::size_t _size;
-    LMap lmap;
+    Handle lmap;
 };
 
 }

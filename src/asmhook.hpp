@@ -1,6 +1,6 @@
 
 /*
- * Nekohack: Break things in cool ways!
+ * Crackem: Break things in cool ways!
  * Copyright (C) 2018 Rebekah Rowe
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,10 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <r_asm.h>
+#pragma once 
 
-namespace neko::hack {
+namespace crackem {
 
-RAsmOp* asm = r_asm_op_new(void);
+// Overwrites calls in a function to the destination
+/*class Overwrite {
+public:
+    Overwrite(){}
+    Overwrite(void* func, std::size_t length, void* dest) {
+        this->Hook(func, length, dest);
+    }
+    Hook(void* func, std::size_t length, void* dest) {
+
+    }
+private:
+    void* overwritten = nullptr;
+};
+
+class ASMHook {
+public:
+    Hook();
+    ~Hook();
+    enum Type {kOverwrite
+    AddJump
+};*/
 
 }

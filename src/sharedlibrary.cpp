@@ -17,97 +17,110 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cassert>
 #include <cstring>
+#include <dlfcn.h>
 
 #include "memory.hpp"
 
 #include "sharedlibrary.hpp"
 
-namespace neko::hack {
+namespace crackem {
 
-struct Passthrough {
-    std::string name;
-    fs::path path;
-    void* begin;
-    std::size_t size;
-};
-
-SharedLibrary::SharedLibrary(){}
-SharedLibrary::SharedLibrary(std::string_view _name) : name(_name) {
-    try {
-        this->Init(_name);
-    } catch(...){}
-}
-
-void SharedLibrary::Init(std::string_view _name){
-    if (!init_flag) {
-        this->name = _name;
-        if (this->name.empty())
-            throw std::runtime_error("SharedLibrary: no name avaiable.");
-        Passthrough pass;
-        pass.name = '/' + std::string(_name) + '.';
-        if (!dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* _pass) {
-            auto* pass = reinterpret_cast<Passthrough*>(_pass);
-            if (!strstr(info->dlpi_name, pass->name.c_str()))
-                return 0;
-
-            pass->path = info->dlpi_name;
-            pass->begin = reinterpret_cast<void*>(info->dlpi_addr + info->dlpi_phdr[0].p_vaddr);
-            pass->size = info->dlpi_phdr[0].p_memsz;
-            return 1;
-        }, reinterpret_cast<void*>(&pass)))
-            throw std::runtime_error("SharedLibrary: Unable to find loaded library");
-
-        this->path = pass.path;
-        this->_begin = pass.begin;
-        this->_end = mem::Offset<void*>(pass.begin, pass.size);
-        this->_size = pass.size;
-
-        this->lmap = static_cast<LMap>(dlopen(this->path.c_str(), RTLD_NOLOAD));
-        if (const char* error = dlerror())
-            throw std::runtime_error("SharedLibrary recieved dlerror: " + std::string(error));
-
-        this->init_flag = true;
+SharedLibrary::SharedLibrary() : loaded(false) {}
+SharedLibrary::SharedLibrary(std::string_view _name) { this->Load(_name); }
+SharedLibrary::SharedLibrary(const SharedLibrary& v) { *this = v; }
+SharedLibrary::SharedLibrary(SharedLibrary&& v) { *this = v; }
+SharedLibrary& SharedLibrary::operator=(SharedLibrary&& v) {
+    this->loaded = false;
+    this->name = v.name;
+    if (v.loaded) {
+        v.loaded = false;    
+        this->path = std::move(v.path);
+        this->_begin = v._begin;
+        this->_end = v._end;
+        this->_size = v._size;
+        this->lmap = v.lmap;
+        this->loaded = true;
     }
+    return *this;
 }
-void SharedLibrary::ForceInit(std::string_view _name) {
-    while(!this->init_flag) {
-        try {
-            this->Init();
-        } catch(...) {}
+SharedLibrary& SharedLibrary::operator=(const SharedLibrary& v) {
+    this->loaded = false;
+    this->name = v.name;
+    if (v.loaded) {
+        this->path = v.path;
+        this->_begin = v._begin;
+        this->_end = v._end;
+        this->_size = v._size;
+        this->lmap = v.lmap;
+        this->loaded = true;
     }
+    return *this;
 }
-std::string_view SharedLibrary::GetName() {
-    return name;
+void SharedLibrary::Load(std::string_view _name) {
+    this->name = _name;
+    this->Load();
 }
-void* SharedLibrary::begin() {
-    this->Init();
+void SharedLibrary::Load() { 
+    assert(!this->loaded && !this->name.empty());
+    this->loaded = false;
+    
+    if (!dl_iterate_phdr([](struct dl_phdr_info* info, size_t, void* _pass) {
+        auto* _this = reinterpret_cast<SharedLibrary*>(_pass);
+        _this->path = info->dlpi_name;
+        if (_this->path.stem() != _this->name/* || _this->path.extention() ==*/)
+            return 0;
+
+        _this->_begin = reinterpret_cast<void*>(info->dlpi_addr + info->dlpi_phdr[0].p_vaddr);
+        _this->_size = info->dlpi_phdr[0].p_memsz;
+        return 1;
+    }, reinterpret_cast<void*>(this)))
+        return;
+    
+    this->loaded = true;
+    this->_end = mem::Offset<void*>(this->_begin, this->_size);
+    this->lmap = static_cast<Handle>(dlopen(this->path.c_str(), RTLD_NOLOAD));
+    if (const char* error = dlerror())
+        throw std::runtime_error("SharedLibrary recieved dlerror(dlopen): " + std::string(error));
+}
+bool SharedLibrary::IsLoaded() const {
+    return this->loaded;
+}
+std::string_view SharedLibrary::GetName() const {
+    assert(this->loaded);
+    return this->name;
+}
+const fs::path& SharedLibrary::GetPath() const {
+    assert(this->loaded);
+    return this->path;
+}
+void* SharedLibrary::begin() const {
+    assert(this->loaded);
     return this->_begin;
 }
-void* SharedLibrary::end() {
-    this->Init();
+void* SharedLibrary::end() const {
+    assert(this->loaded);
     return this->_end;
 }
-std::size_t SharedLibrary::size() {
-    this->Init();
+std::size_t SharedLibrary::size() const {
+    assert(this->loaded);
     return this->_size;
 }
-LMap SharedLibrary::GetLMap() {
-    this->Init();
+Handle SharedLibrary::GetHandle() const {
+    assert(this->loaded);
     return this->lmap;
 }
-void SharedLibrary::Clear(){
-    this->init_flag = false;
-    this->name = std::string_view();
-}
-void* SharedLibrary::GetSymInternal(SymStr name) {
+void* SharedLibrary::GetSymInternal(SymStr name) const {
     #if defined(__linux__)
-        void* symbol = dlsym(this->GetLMap(), name);
+        void* symbol = dlsym(this->GetHandle(), name);
         if (const char* error = dlerror())
-            throw std::runtime_error("SharedLibrary recieved dlerror: " + std::string(error));
+            throw std::runtime_error("SharedLibrary recieved dlerror(dlsym): " + std::string(error));
         return symbol;
     #elif defined(_WIN32)
         return GetProcAddress(this->GetLMap(), name);
+    #else
+        assert(false);
     #endif
 }
 

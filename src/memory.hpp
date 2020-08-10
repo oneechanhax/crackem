@@ -17,28 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace neko::hack {
+#include <cstdint>
 
-// Overwrites calls in a function to the destination
-/*class Overwrite {
+namespace crackem::mem {
+
+template <typename Type, class Ptr>
+inline auto Offset(Ptr* src, std::ptrdiff_t offset) {
+    return reinterpret_cast<Type*>(reinterpret_cast<uint64_t>(src) + offset);
+}
+
+/*class Patch {
 public:
-    Overwrite(){}
-    Overwrite(void* func, std::size_t length, void* dest) {
-        this->Hook(func, length, dest);
-    }
-    Hook(void* func, std::size_t length, void* dest) {
+    Patch();
+    void Add(){
 
     }
+    void Remove();
+    static void Write(void* where, std::byte* with, std::size_t len);
 private:
-    void* overwritten = nullptr;
-};
-
-class ASMHook {
-public:
-    Hook();
-    ~Hook();
-    enum Type {kOverwrite
-    AddJump
+    void* original_location = nullptr;
+    std::vector<std::byte> original_data;
 };*/
+
 
 }
